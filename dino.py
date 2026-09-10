@@ -15,7 +15,7 @@ GAME_SIZE = 20
 GAME_RATE = 1
 SNAPSHOT_DURATION = 1
 JUMP_DURATION = 5
-MAX_OBSTACLE_LENGTH = GAME_RATE*JUMP_DURATION-1
+MAX_OBSTACLE_LENGTH = GAME_RATE*JUMP_DURATION-2
 
 # Actions
 NOTHING = 0
@@ -115,7 +115,7 @@ class BasicEnv(gym.Env):
       collided = self.check_for_collision()
       if collided:
         done = True
-        reward = -50
+        reward = 0
         self.cumulative_reward += reward
         print(f'Cumulative Reward: {self.cumulative_reward}')
         print('You Lost :(')
@@ -136,7 +136,7 @@ class BasicEnv(gym.Env):
               collided = self.check_for_collision()
               if collided:
                 done = True
-                reward = -50
+                reward = 0
                 self.cumulative_reward += reward
                 print(f'Cumulative Reward: {self.cumulative_reward}')
                 print('You Lost :(')
@@ -149,7 +149,7 @@ class BasicEnv(gym.Env):
               collided = self.check_for_collision()
               if collided:
                 done = True
-                reward = -50
+                reward = 0
                 self.cumulative_reward += reward
                 print(f'Cumulative Reward: {self.cumulative_reward}')
                 print('You Lost :(')
@@ -163,7 +163,7 @@ class BasicEnv(gym.Env):
           # since this is when the collision was avoided and we can assume
           # that here the nearest obstacle has been cleared, so we need to swap
           # the nearest and the next obstacle
-        #   self.check_for_collision()
+          self.check_for_collision()
 
           # special case: one jump clears two obstacles
           if(self.nearest_obstacle_end_x<0 and self.next_obstacle_end_x<0):
@@ -295,23 +295,39 @@ class BasicEnv(gym.Env):
     print(f"Cumulative reward: {self.cumulative_reward}")
 
   def generate_next_obstacle(self):
-    allowed_values = [-1] + list(range(1,MAX_OBSTACLE_LENGTH+1))
-    # allowed_values = [1,-1,1,1,1,1,1,1,1] # TESTING
-    self.next_obstacle_length = self.np_random.choice(allowed_values)
-    # Obstacle was randomly chosen to not be generated if length is -1
-    if self.next_obstacle_length == -1:
-      self.next_obstacle_distance = -1
-      self.next_obstacle_y = -1
-      self.next_obstacle_end_x = -1
-      return
-    self.next_obstacle_distance = self.np_random.integers(self.nearest_obstacle_end_x+GAME_RATE, int(GAME_SIZE*1.5))
-    self.next_obstacle_y = self.np_random.integers(0,2)
-    if self.next_obstacle_length == 1:
-      self.next_obstacle_y = self.np_random.integers(0,2)
-    else:
-      self.next_obstacle_y = 0
+    allowed_values = [-1] + list(range(1, MAX_OBSTACLE_LENGTH + 1))
 
-    self.next_obstacle_end_x = self.next_obstacle_distance + self.next_obstacle_length
+    self.next_obstacle_length = self.np_random.choice(allowed_values)
+
+    # No next obstacle
+    if self.next_obstacle_length == -1:
+        self.next_obstacle_distance = -1
+        self.next_obstacle_y = -1
+        self.next_obstacle_end_x = -1
+        return
+
+    # Generate the next obstacle a random distance
+    # after the END of the current obstacle.
+    MIN_GAP = 5
+    MAX_GAP = 10
+
+    gap = self.np_random.integers(MIN_GAP, MAX_GAP + 1)
+
+    self.next_obstacle_distance = (
+        self.nearest_obstacle_end_x + gap
+    )
+
+    # Birds can be at y=0 or y=1.
+    # Cacti are always at y=0.
+    if self.next_obstacle_length == 1:
+        self.next_obstacle_y = self.np_random.integers(0, 2)
+    else:
+        self.next_obstacle_y = 0
+
+    self.next_obstacle_end_x = (
+        self.next_obstacle_distance +
+        self.next_obstacle_length
+    )
 
   def check_for_collision(self):
   # Check collision between y-coordinates and then after the last jump the resultant obstacle distance must be negative
