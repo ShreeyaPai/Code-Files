@@ -108,7 +108,10 @@ class BasicEnv(gym.Env):
     # set default values for done, reward, and the player position
     #before taking the action
     done = False
-
+    if action == 1:
+       action = JUMP
+    elif action == 0:
+       action = NOTHING
     # If action is to do nothing, progress the obstacles
     if action == NOTHING:
       self.progress_game()
